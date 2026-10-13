@@ -1,4 +1,6 @@
-# fraud-sentinel ("imgpipe" initial prototype has been transformed into a different product domain while mantaining the underlying architecture)
+# fraud-sentinel
+
+*imgpipe* - initial prototype has been transformed into a different product domain while mantaining the underlying architecture
 
 ## Getting Started
 
