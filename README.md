@@ -1,6 +1,6 @@
 # fraud-sentinel
 
-A decoupled, event-driven image processing service written in Go, using MongoDB for status tracking, RabbitMQ for asynchronous workload dispatch and Go's image manipulation.
+*imgpipe* - initial prototype has been transformed into a different product domain while mantaining the underlying architecture
 
 ## Getting Started
 
@@ -22,25 +22,10 @@ Current State (Stage 1)         Stage 2: Local Kubernetes           Stage 3: Clo
 
 ## Architecture & Design Decisions
 
-`fraud-sentinel` decouples the HTTP ingestion API from CPU-bound image transformations using a producer-consumer pattern.
+`fraud-sentinel`.
 
 ```
-[ Client ]
-│
-├─► POST /api/v1/process
-│      │
-│      ▼
-│   [ API Service ] ──── (Insert PENDING) ────► [ MongoDB ]
-│      │
-│      └──────── (Publish Job JSON) ──────────► [ RabbitMQ: image_jobs ]
-│                                                    │
-│                                                    ▼
-└─► GET /api/v1/jobs?id=... ◄── (Query Status) ── [ Worker Service ]
-│
-├─► Download & Resize Image
-├─► Save to Storage (/renders)
-├─► Update Status (COMPLETED/FAILED)
-└─► Manual ACK/NACK
+(to be added)
 ```
 
 ### Key Architectural Choices:
@@ -66,11 +51,11 @@ Current State (Stage 1)         Stage 2: Local Kubernetes           Stage 3: Clo
 .
 ├── cmd/
 │   ├── api/          # HTTP Ingestion Service (Producer)
-│   └── worker/       # Image Processing Consumer (Worker)
+│   └── worker/       
 ├── pkg/
 │   ├── db/           # MongoDB Connection & Job Repository
 │   ├── models/       # Job & Status Domain Structs
-│   ├── processor/    # Image Fetching, Scaling & Encoding Logic
+│   ├── processor/    
 │   └── queue/        # RabbitMQ Client, Publisher & Consumer Wrappers
-└── renders/          # Local output directory for processed assets
+└── renders/          
 ```
