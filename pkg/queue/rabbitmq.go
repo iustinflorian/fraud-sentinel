@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"imgpipe/pkg/models"
+	"fraud-sentinel/pkg/models"
 	"log"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -28,7 +28,7 @@ func NewRabbitMQ(amqpURL string) (*RabbitMQ, error) {
 	}
 
 	q, err := ch.QueueDeclare(
-		"image_jobs",
+		"tx_ingest_queue",
 		true,
 		false,
 		false,
@@ -48,7 +48,7 @@ func NewRabbitMQ(amqpURL string) (*RabbitMQ, error) {
 	}, nil
 }
 
-func (r *RabbitMQ) PublishJob(ctx context.Context, job *models.Job) error {
+func (r *RabbitMQ) PublishTransaction(ctx context.Context, job *models.Transaction) error {
 	body, err := json.Marshal(job)
 	if err != nil {
 		return fmt.Errorf("can't serialize job to JSON: %w", err)
@@ -70,11 +70,11 @@ func (r *RabbitMQ) PublishJob(ctx context.Context, job *models.Job) error {
 		return fmt.Errorf("can't publish message to RabbitMQ: %w", err)
 	}
 
-	log.Printf("Job %s successfully sent to RabbitMQ!", job.ID)
+	log.Printf("Transaction %s successfully sent to RabbitMQ!", job.ID)
 	return nil
 }
 
-func (r *RabbitMQ) ConsumeJobs() (<-chan amqp.Delivery, error) {
+func (r *RabbitMQ) ConsumeTransactions() (<-chan amqp.Delivery, error) {
 	err := r.Channel.Qos(
 		1,
 		0,

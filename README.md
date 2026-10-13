@@ -1,4 +1,4 @@
-# imgpipe
+# fraud-sentinel
 
 A decoupled, event-driven image processing service written in Go, using MongoDB for status tracking, RabbitMQ for asynchronous workload dispatch and Go's image manipulation.
 
@@ -22,7 +22,7 @@ Current State (Stage 1)         Stage 2: Local Kubernetes           Stage 3: Clo
 
 ## Architecture & Design Decisions
 
-`imgpipe` decouples the HTTP ingestion API from CPU-bound image transformations using a producer-consumer pattern.
+`fraud-sentinel` decouples the HTTP ingestion API from CPU-bound image transformations using a producer-consumer pattern.
 
 ```
 [ Client ]

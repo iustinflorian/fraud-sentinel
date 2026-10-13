@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"imgpipe/pkg/db"
-	"imgpipe/pkg/models"
-	"imgpipe/pkg/processor"
-	"imgpipe/pkg/queue"
+	"fraud-sentinel/pkg/db"
+	"fraud-sentinel/pkg/models"
+	"fraud-sentinel/pkg/processor"
+	"fraud-sentinel/pkg/queue"
 	"log"
 	"os"
 	"time"
@@ -23,12 +23,12 @@ func main() {
 		rabbitURI = "amqp://guest:guest@localhost:5672/" // Fallback for local `go run` execution
 	}
 
-	database, err := db.ConnectMongo(mongoURI, "imgpipe")
+	database, err := db.ConnectMongo(mongoURI, "fraud-sentinel")
 	if err != nil {
 		log.Fatalf("error connecting to MongoDB: %v", err)
 	}
 
-	repo := db.NewJobRepository(database)
+	repo := db.NewTransactionRepository(database)
 	log.Println("Connection with MongoDB established!")
 
 	mq, err := queue.NewRabbitMQ(rabbitURI)
@@ -40,17 +40,17 @@ func main() {
 	defer mq.Conn.Close()
 	defer mq.Channel.Close()
 
-	deliveries, err := mq.ConsumeJobs()
+	deliveries, err := mq.ConsumeTransactions()
 	if err != nil {
-		log.Fatalf("failed to consume jobs: %v", err)
+		log.Fatalf("failed to consume transactions: %v", err)
 	}
 
-	log.Println("[Worker] Worker service running... Waiting for jobs from RabbitMQ.")
+	log.Println("[Worker] Worker service running... Waiting for transactions from RabbitMQ.")
 
 	for msg := range deliveries {
-		var job models.Job
+		var tx models.Transaction
 
-		if err := json.Unmarshal(msg.Body, &job); err != nil {
+		if err := json.Unmarshal(msg.Body, &tx); err != nil {
 			log.Printf("[Worker] Corrupted message JSON: %v. Dropping message.", err)
 			msg.Nack(false, false)
 			continue
@@ -58,20 +58,16 @@ func main() {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
-		outputURL, err := processor.ProcessImage(ctx, &job)
-		if err != nil {
-			log.Printf("[Worker] Failed to process job %s: %v", job.ID, err)
+		fraudResult := processor.EvaluateFraudRisk(&tx)
 
-			_ = repo.UpdateJobStatus(ctx, job.ID, "Failed", "", err.Error())
-
-			msg.Nack(false, false)
-			cancel()
-			continue
+		status := models.StatusApproved
+		if fraudResult.Flagged {
+			status = models.StatusFlagged
 		}
 
-		err = repo.UpdateJobStatus(ctx, job.ID, "Completed", outputURL, "")
+		err = repo.UpdateFraudAssessment(ctx, tx.ID, status, fraudResult)
 		if err != nil {
-			log.Printf("[Worker] Failed to update DB status for job %s: %v", job.ID, err)
+			log.Printf("[Worker] Failed to update status for transaction %s: %v", tx.ID, err)
 
 			msg.Nack(false, true)
 			cancel()
@@ -79,7 +75,7 @@ func main() {
 		}
 
 		msg.Ack(false)
-		log.Printf("[Worker] Job %s fully processed and ACKed.", job.ID)
+		log.Printf("[Worker] Transaction %s processed: Status=%s, RiskScore=%d", tx.ID, status, fraudResult.RiskScore)
 		cancel()
 	}
 }

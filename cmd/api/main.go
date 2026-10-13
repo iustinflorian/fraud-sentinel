@@ -1,8 +1,8 @@
 package main
 
 import (
-	"imgpipe/pkg/db"
-	"imgpipe/pkg/queue"
+	"fraud-sentinel/pkg/db"
+	"fraud-sentinel/pkg/queue"
 	"log"
 	"net/http"
 	"os"
@@ -19,12 +19,12 @@ func main() {
 		rabbitURI = "amqp://guest:guest@localhost:5672/" // Fallback for local `go run` execution
 	}
 
-	database, err := db.ConnectMongo(mongoURI, "imgpipe")
+	database, err := db.ConnectMongo(mongoURI, "fraud-sentinel")
 	if err != nil {
 		log.Fatalf("error connecting to MongoDB: %v", err)
 	}
 
-	repo := db.NewJobRepository(database)
+	repo := db.NewTransactionRepository(database)
 	log.Println("Connection with MongoDB established!")
 
 	mq, err := queue.NewRabbitMQ(rabbitURI)
@@ -36,10 +36,10 @@ func main() {
 	defer mq.Conn.Close()
 	defer mq.Channel.Close()
 
-	jobHandler := NewJobHandler(repo, mq)
+	txHandler := NewTransactionHandler(repo, mq)
 
-	http.HandleFunc("/api/v1/process", jobHandler.CreateJobHandler)
-	http.HandleFunc("/api/v1/jobs", jobHandler.GetJobStatusHandler)
+	http.HandleFunc("/api/v1/transactions", txHandler.CreateTransactionHandler)
+	http.HandleFunc("/api/v1/transactions/status", txHandler.GetTransactionStatusHandler)
 
 	log.Println("API Server runs on http://localhost:8080...")
 	if err := http.ListenAndServe(":8080", nil); err != nil {

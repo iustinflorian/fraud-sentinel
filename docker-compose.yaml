@@ -1,33 +1,41 @@
-version: '3.8'
-
 services:
   mongo:
     image: mongo:latest
-    container_name: imgpipe-mongo
+    container_name: fraud-sentinel-mongo
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
 
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: imgpipe-rabbitmq
+    container_name: fraud-sentinel-rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
       start_period: 15s
+    restart: unless-stopped
 
   api:
     build:
       context: .
       dockerfile: Dockerfile
       target: api
-    container_name: imgpipe-api
+    container_name: fraud-sentinel-api
     ports:
       - "8080:8080"
     environment:
@@ -35,27 +43,27 @@ services:
       - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672/
     depends_on:
       mongo:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    restart: unless-stopped
 
   worker:
     build:
       context: .
       dockerfile: Dockerfile
       target: worker
-    container_name: imgpipe-worker
+    container_name: fraud-sentinel-worker
     environment:
       - MONGO_URI=mongodb://mongo:27017
       - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672/
-    volumes:
-      - renders_data:/app/renders
     depends_on:
       mongo:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   mongo_data:
-  renders_data:
+  rabbitmq_data:

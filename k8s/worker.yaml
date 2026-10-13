@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: worker-renders-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fraud-sentinel-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fraud-sentinel-worker
+  template:
+    metadata:
+      labels:
+        app: fraud-sentinel-worker
+    spec:
+      containers:
+        - name: worker
+          image: fraud-sentinel-api:latest # or fraud-sentinel-worker:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: fraud-sentinel-config
+          volumeMounts:
+            - mountPath: /app/renders
+              name: renders-storage
+      volumes:
+        - name: renders-storage
+          persistentVolumeClaim:
+            claimName: worker-renders-pvc
