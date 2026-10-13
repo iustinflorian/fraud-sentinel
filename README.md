@@ -29,9 +29,9 @@ Current State (Stage 1)         Stage 2: Local Kubernetes           Stage 3: Clo
 ```
 
 ### Key Architectural Choices:
-- **Asynchronous Decoupling:** The API service responds immediately with `202 Accepted` and a unique Job ID, keeping client request latency low regardless of image processing size.
+- **Asynchronous Decoupling:** The API service responds immediately with `202 Accepted` and a unique Transacrtion ID, keeping client request latency low.
 - **Manual Message Acknowledgments (`ACK`/`NACK`):** RabbitMQ consumers are configured with `autoAck = false`. Messages are explicitly `ACK`ed only after successful processing and database status update. On non-recoverable errors (e.g., corrupt payloads), messages are `NACK`ed without requeueing (`requeue = false`).
-- **Fair Dispatch (`QoS` Prefetching):** Workers enforce a `PrefetchCount = 1` QoS policy on the AMQP channel. This prevents a single fast-starting worker from hoarding jobs when scaling horizontally in Kubernetes.
+- **Fair Dispatch (`QoS` Prefetching):** Workers enforce a `PrefetchCount = 1` QoS policy on the AMQP channel. This prevents a single fast-starting worker from hoarding transactions when scaling horizontally in Kubernetes.
 - **Repository Pattern:** MongoDB interactions are abstracted via a repository interface, ensuring clean separation between storage mechanisms and HTTP handlers.
 
 ---
