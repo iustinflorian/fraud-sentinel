@@ -11,7 +11,7 @@ For local setup instructions, Docker initialization, and testing guides, see [SE
 ```
 Current State (Stage 1)         Stage 2: Local Kubernetes           Stage 3: Cloud Primitives (AWS emulation)
 ┌───────────────────────┐       ┌─────────────────────────────┐     ┌─────────────────────────────────────────┐
-│                       │       │ KUBERNETES CLUSTER (Kind)   │     │ KUBERNETES CLUSTER                      │
+│                       │       │KUBERNETES CLUSTER (minikube)│     │ KUBERNETES CLUSTER                      │
 │  [ API ]   [ Worker ] │       │                             │     │                                         │
 │     │          │      │       │  [ API Pods ] [Worker Pods] │     │  [ API Pods ]      [ Worker Pods ]      │
 │  [RabbitMQ] [Mongo]   │  ──►  │       │             │       │ ──► │       │                   │             │
@@ -25,7 +25,21 @@ Current State (Stage 1)         Stage 2: Local Kubernetes           Stage 3: Clo
 `fraud-sentinel`.
 
 ```
-(to be added)
+[ Client ]
+    │
+    ▼ POST /api/v1/transactions
+[ API Service ]
+    │
+    ├─► 1. Writes "PENDING" Transaction Record ──────► [ MongoDB ]
+    │
+    └─► 2. Publishes Transaction JSON Payload ───────► [ RabbitMQ: tx_ingest_queue ]
+                                                             │
+                                                             ▼ (Fair Dispatch: Prefetch QoS = 1)
+                                                       [ Worker Service ]
+                                                             │
+                                                             ├─► 1. Evaluates Fraud Risk Rules
+                                                             ├─► 2. Updates Status & Score ──► [ MongoDB ]
+                                                             └─► 3. Sends Manual ACK ───────► [ RabbitMQ ]
 ```
 
 ### Key Architectural Choices:
@@ -57,5 +71,5 @@ Current State (Stage 1)         Stage 2: Local Kubernetes           Stage 3: Clo
 │   ├── models/       # Job & Status Domain Structs
 │   ├── processor/    
 │   └── queue/        # RabbitMQ Client, Publisher & Consumer Wrappers
-└── renders/          
+└── k8s/ ..           # Kubernetes manifest files          
 ```
