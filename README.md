@@ -20,7 +20,7 @@ Current State (Stage 1)         Stage 2: Local Kubernetes           Stage 3: Clo
 └───────────────────────┘       └─────────────────────────────┘     └─────────────────────────────────────────┘
 ```
 
-## Architecture & Design Decisions
+## Architecture
 
 `fraud-sentinel`.
 
