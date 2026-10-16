@@ -1,6 +1,6 @@
 # fraud-sentinel
 
-*imgpipe* - initial prototype has been transformed into a different product domain while mantaining the underlying architecture
+initial prototype has been transformed into a different product domain while mantaining the underlying architecture
 
 ## Getting Started
 
@@ -52,10 +52,9 @@ Current State (Stage 1)         Stage 2: Local Kubernetes           Stage 3: Clo
 
 ## Tech Stack
 
-- **Language:** Go (1.27)
+- **Language:** Go (1.26)
 - **Message Broker:** RabbitMQ (AMQP 0-9-1)
 - **Database:** MongoDB
-- **Image Resizing:** `golang.org/x/image/draw`
 - **Containerization:** Docker / Docker Compose (in progress)
 
 ---
